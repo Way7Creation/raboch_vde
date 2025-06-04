@@ -44,8 +44,17 @@ $router->get('/api/search', [$apiController, 'searchAction']);
 $router->get('/api/autocomplete', [$apiController, 'autocompleteAction']);
 $router->get('/api/product/{id}/info', [$productController, 'ajaxProductInfoAction']);
 
-// === ДИАГНОСТИКА (для админов) ===
-$router->get('/api/monitoring/check', [$diagnosticsController, 'runAction']);
+// === ДИАГНОСТИКА (для админов) - ИСПРАВЛЕНО! ===
+$router->get('/api/monitoring/check', function() use ($diagnosticsController) {
+    AuthMiddleware::requireRole('admin');
+    $diagnosticsController->runAction();
+});
+
+// ✅ ДОБАВЛЯЕМ НЕДОСТАЮЩИЙ РОУТ!
+$router->get('/api/admin/diagnostics/run', function() use ($diagnosticsController) {
+    AuthMiddleware::requireRole('admin');
+    $diagnosticsController->runAction();
+});
 
 // === АВТОРИЗАЦИЯ ===
 $router->match(['GET', 'POST'], '/login', [$loginController, 'loginAction']);
@@ -133,7 +142,8 @@ $router->set404(function() {
         echo json_encode([
             'success' => false,
             'error' => 'Endpoint not found',
-            'code' => 404
+            'code' => 404,
+            'uri' => $_SERVER['REQUEST_URI'] ?? ''
         ]);
     } else {
         \App\Core\Layout::render('errors/404', []);
